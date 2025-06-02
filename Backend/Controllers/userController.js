@@ -1,18 +1,11 @@
-import bcrypt from "bcryptjs"
-import jwt from "jsonwebtoken"
-
-import User from "../Model/userModel.js";
-
-import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import User from "../Model/userModel.js";
 
 // SIGN UP
 export const signUp = async (req, res) => {
   try {
-    const { name, email, password, profileImage } = req.body;
-
-    // Basic validation
+    const { name, email, password, profilePic, isAdmin } = req.body;
     if (!name || !email || !password) {
       return res.status(400).json({ message: "All fields are required" });
     }
@@ -27,22 +20,25 @@ export const signUp = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
+    const adminVerify = isAdmin === process.env.ADMIN_CODE ? true : false;
+
     // Create new user
     const newUser = new User({
       name,
       email,
+      isAdmin: adminVerify,
       password: hashedPassword,
-      profileImage: profileImage || null,
+      profilePic:
+        profilePic ||
+        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTFMU8xN7Eomz1Bh06wEOhEyvHi06UGtAakVA&s",
     });
 
     await newUser.save();
 
     // Generate JWT Token
-    const token = jwt.sign(
-      { id: newUser._id },
-      process.env.JWT_SECRET_KEY,
-      { expiresIn: "7d" }
-    );
+    const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET_KEY, {
+      expiresIn: "7d",
+    });
 
     // Send response
     res.status(201).json({
@@ -52,15 +48,21 @@ export const signUp = async (req, res) => {
         id: newUser._id,
         name: newUser.name,
         email: newUser.email,
-        profileImage: newUser.profileImage,
-      }
+        isAdmin: newUser.isAdmin,
+        profilePic: newUser.profilePic,
+      },
     });
-
   } catch (err) {
     console.error("Signup error:", err);
     res.status(500).json({ message: "Server error. Please try again later." });
   }
 };
+
+export const logIn = async (req, res) => {
+    
+};
+
+
 
 
 // GET /users/:id - Retrieve user profile
